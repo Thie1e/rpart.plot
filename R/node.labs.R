@@ -133,6 +133,16 @@ get.class.labs <- function(x, extra, under, digits, xsep, varlen)
     } else if(ex == 9) {           # scale probs by proportion of obs in node?
         scale <- matrix(rep(rowSums(n.per.lev), each=nlev), ncol=nlev, byrow=TRUE)
         prob.per.lev  <- prob.per.lev * scale / ntotal
+    } else if(ex == 10) {
+        require(PropCIs)
+        xsep <- ", "
+        ciframe <- matrix(NA, nrow  = nrow(frame), ncol = 3)
+        for(i in 1:nrow(frame)) {
+            ci <- addz2ci(yval2[i, 2], yval2[i, 2] + yval2[i, 3], conf.level = 0.95)
+            ciframe[i, ] <- c(estimate = round(ci$estimate, 2),
+                              lowerci = round(ci$conf.int[1], 2),
+                              upperci = round(ci$conf.int[2], 2))
+        }
     }
     if(is.null(xsep))
         xsep <- "  " # two spaces
@@ -157,18 +167,21 @@ get.class.labs <- function(x, extra, under, digits, xsep, varlen)
     labs <-
         if(ex == 0)
             fitted
-        else if(ex == 1)
-            paste0(fitted, newline, n.per.lev)
-        else if(ex == 2)
-            paste0(fitted, newline, ncorrect, xsep, n)
-        else if(ex == 3)
-            paste0(fitted, newline, n - ncorrect, xsep, n)
-        else if(ex == 4 || ex == 6 || ex == 8 || ex == 9)
-            paste0(fitted, newline, prob.per.lev)
-        else if(ex == 5 || ex == 7)
-            prob.per.lev
-        else
-            stop0("extra=", extra, " is illegal (for method=\"", x$method, "\")")
+    else if(ex == 1)
+        paste0(fitted, newline, n.per.lev)
+    else if(ex == 2)
+        paste0(fitted, newline, ncorrect, xsep, n)
+    else if(ex == 3)
+        paste0(fitted, newline, n - ncorrect, xsep, n)
+    else if(ex == 4 || ex == 6 || ex == 8 || ex == 9)
+        paste0(fitted, newline, prob.per.lev)
+    else if(ex == 5 || ex == 7)
+        prob.per.lev
+    else if(ex == 10)
+        paste0(fitted, newline, ciframe[, 1], " [", ciframe[, 2], xsep,
+               ciframe[, 3], "]")
+    else
+        stop0("extra=", extra, " is illegal (for method=\"", x$method, "\")")
 
     if(extra >= 100) { # add percent?
         sep <- switch(ex+1,  # figure out where to put percent (same line? below? etc.)
@@ -181,7 +194,8 @@ get.class.labs <- function(x, extra, under, digits, xsep, varlen)
                       "  ",                       # 6
                       if(under) "\n\n" else "\n", # 7
                       "  ",                       # 8
-                      "\n")                       # 9
+                      "\n",                       # 9
+                      "\n")                       # 10
 
         labs <- sprintf("%s%s%s%%", labs, sep,
                         formatf(100 * frame$wt / frame$wt[1], digits=max(0, digits-2)))
